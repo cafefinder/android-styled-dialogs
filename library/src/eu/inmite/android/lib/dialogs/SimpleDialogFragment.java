@@ -21,6 +21,8 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.text.Html;
+import android.text.SpannedString;
 import android.text.TextUtils;
 import android.view.View;
 
@@ -68,7 +70,7 @@ public class SimpleDialogFragment extends BaseDialogFragment {
 			builder.setTitle(title);
 		}
 
-		final String message = getMessage();
+		final CharSequence message = getMessage();
 		if (!TextUtils.isEmpty(message)) {
 			builder.setMessage(message);
 		}
@@ -103,8 +105,8 @@ public class SimpleDialogFragment extends BaseDialogFragment {
 		return builder;
 	}
 
-	protected String getMessage() {
-		return getArguments().getString(ARG_MESSAGE);
+	protected CharSequence getMessage() {
+		return getArguments().getCharSequence(ARG_MESSAGE);
 	}
 
 	protected String getTitle() {
@@ -134,6 +136,9 @@ public class SimpleDialogFragment extends BaseDialogFragment {
 			if (targetFragment instanceof ISimpleDialogListener) {
 				return (ISimpleDialogListener) targetFragment;
 			}
+		} else if (getParentFragment() != null
+				&& getParentFragment() instanceof ISimpleDialogListener) {
+			return (ISimpleDialogListener) getParentFragment();
 		} else {
 			if (getActivity() instanceof ISimpleDialogListener) {
 				return (ISimpleDialogListener) getActivity();
@@ -148,6 +153,9 @@ public class SimpleDialogFragment extends BaseDialogFragment {
 			if (targetFragment instanceof ISimpleDialogCancelListener) {
 				return (ISimpleDialogCancelListener) targetFragment;
 			}
+		} else if (getParentFragment() != null
+				&& getParentFragment() instanceof ISimpleDialogCancelListener) {
+			return (ISimpleDialogCancelListener) getParentFragment();
 		} else {
 			if (getActivity() instanceof ISimpleDialogCancelListener) {
 				return (ISimpleDialogCancelListener) getActivity();
@@ -159,7 +167,7 @@ public class SimpleDialogFragment extends BaseDialogFragment {
 	public static class SimpleDialogBuilder extends BaseDialogBuilder<SimpleDialogBuilder> {
 
 		private String mTitle;
-		private String mMessage;
+		private CharSequence mMessage;
 		private String mPositiveButtonText;
 		private String mNegativeButtonText;
 
@@ -186,12 +194,31 @@ public class SimpleDialogFragment extends BaseDialogFragment {
 		}
 
 		public SimpleDialogBuilder setMessage(int messageResourceId) {
-			mMessage = mContext.getString(messageResourceId);
+			mMessage = mContext.getText(messageResourceId);
 			return this;
 		}
 
-		public SimpleDialogBuilder setMessage(String message) {
+		/**
+		 * Allow to set resource string with HTML formatting and bind %s,%i.
+		 * This is workaround for https://code.google.com/p/android/issues/detail?id=2923
+		 */
+		public SimpleDialogBuilder setMessage(int resourceId, Object... formatArgs){
+			mMessage = Html.fromHtml(String.format(Html.toHtml(new SpannedString(mContext.getText(resourceId))), formatArgs));
+			return this;
+		}
+
+		public SimpleDialogBuilder setMessage(CharSequence message) {
 			mMessage = message;
+			return this;
+		}
+
+		public SimpleDialogBuilder setHtmlMessage(int htmlMessageResourceId) {
+			mMessage = mContext.getText(htmlMessageResourceId);
+			return this;
+		}
+
+		public SimpleDialogBuilder setHtmlMessage(String htmlMessage) {
+			mMessage = Html.fromHtml(htmlMessage);
 			return this;
 		}
 
@@ -232,7 +259,7 @@ public class SimpleDialogFragment extends BaseDialogFragment {
 			}
 
 			Bundle args = new Bundle();
-			args.putString(SimpleDialogFragment.ARG_MESSAGE, mMessage);
+			args.putCharSequence(SimpleDialogFragment.ARG_MESSAGE, mMessage);
 			args.putString(SimpleDialogFragment.ARG_TITLE, mTitle);
 			args.putString(SimpleDialogFragment.ARG_POSITIVE_BUTTON, mPositiveButtonText);
 			args.putString(SimpleDialogFragment.ARG_NEGATIVE_BUTTON, mNegativeButtonText);
