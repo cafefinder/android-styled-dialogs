@@ -39,3 +39,4 @@ library/.gradle
 #Other
 .DS_Store
 tmp
+library/project.properties
